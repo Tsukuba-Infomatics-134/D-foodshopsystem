@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>整理券番号表示</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rounded+M+Plus+1c&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Rounded M Plus 1c', sans-serif;
+      background-color: #fff9f5;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .column {
+      flex: 1;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 20px;
+    }
+
+    .left {
+      background-color: #ffe4e1;
+      border-right: 2px solid #ffc2c2;
+    }
+
+    .right {
+      background-color: #e0f7fa;
+    }
+
+    h2 {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+      color: #444;
+      text-align: center;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      justify-items: center;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background-color: white;
+      width: 100%;
+      max-width: 180px;
+      height: 110px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: bold;
+      text-align: center;
+      border-radius: 16px;
+      box-shadow: 2px 4px 10px rgba(0,0,0,0.1);
+      color: #333;
+    }
+
+    .gif-area {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding-top: 10px;
+    }
+
+    .gif-area img {
+      width: 350px;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 左側 -->
+    <div class="column left">
+      <div>
+        <h2>呼び出し待ち番号</h2>
+        <div class="grid" id="waiting-list"></div>
+      </div>
+      <div class="gif-area">
+        <img src="https://ugokawaii.com/wp-content/uploads/2022/07/chef.gif" alt="シェフGIF">
+        <img src="https://ugokawaii.com/wp-content/uploads/2022/07/chef.gif" alt="シェフGIF">
+      </div>
+    </div>
+
+    <!-- 右側 -->
+    <div class="column right">
+      <div>
+        <h2>呼び出し中番号</h2>
+        <div class="grid" id="calling-list"></div>
+      </div>
+      <div class="gif-area">
+        <img src="https://hiyokoyarou.com/wp-content/uploads/2022/09/cupramen-gif.gif" alt="ラーメンGIF">
+        <img src="https://hiyokoyarou.com/wp-content/uploads/2022/09/cupramen-gif.gif" alt="ラーメンGIF">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function generateRandomCodes(count) {
+      const codes = [];
+      for (let i = 0; i < count; i++) {
+        const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+        const number = String(Math.floor(Math.random() * 900) + 100);
+        codes.push(letter + number);
+      }
+      return codes;
+    }
+
+    const waitingList = generateRandomCodes(6);
+    const callingList = generateRandomCodes(6);
+
+    const waitingGrid = document.getElementById("waiting-list");
+    const callingGrid = document.getElementById("calling-list");
+
+    waitingList.forEach(code => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.textContent = code;
+      waitingGrid.appendChild(div);
+    });
+
+    callingList.forEach(code => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.textContent = code;
+      callingGrid.appendChild(div);
+    });
+  </script>
+</body>
+</html>
