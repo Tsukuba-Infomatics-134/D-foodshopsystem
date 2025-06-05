@@ -12,6 +12,7 @@
       background-color: white;
       height: 100vh;
       overflow: hidden;
+      position: relative;
     }
 
     .container {
@@ -86,15 +87,18 @@
       border-radius: 16px;
       box-shadow: 2px 4px 10px rgba(0,0,0,0.1);
       opacity: 1;
-      transition: opacity 3s ease;
+      cursor: pointer;
+      user-select: none;
     }
 
+    /* フェードアニメーションは自動更新時のみ */
     .fade-out {
       opacity: 0;
+      transition: opacity 3s ease;
     }
-
     .fade-in {
       opacity: 1;
+      transition: opacity 3s ease;
     }
 
     @keyframes pop-in {
@@ -137,6 +141,112 @@
       width: 360px;
       height: auto;
     }
+
+    /* ポップアップ用スタイル */
+    #popup-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    #popup-overlay.show {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    #popup-box {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 30px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      text-align: center;
+      max-width: 320px;
+      width: 90%;
+    }
+
+    #popup-message {
+      font-size: 1.6rem;
+      margin-bottom: 20px;
+      white-space: normal;
+    }
+
+    #popup-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    #popup-buttons button {
+      font-size: 1.2rem;
+      padding: 8px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      user-select: none;
+    }
+
+    #btn-yes {
+      background-color: #ff4081;
+      color: white;
+    }
+
+    #btn-yes:hover {
+      background-color: #e73370;
+    }
+
+    #btn-no {
+      background-color: #ccc;
+    }
+
+    #btn-no:hover {
+      background-color: #aaa;
+    }
+
+    /* 番号入力用テキストボックス */
+    #popup-input {
+      font-size: 1.6rem;
+      padding: 8px 12px;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      outline: none;
+      user-select: text;
+    }
+
+    /* 右上の「番号の追加」ボタン */
+    #btn-add-number {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      font-size: 1.2rem;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: none;
+      background-color: #ff7043;
+      color: white;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      transition: background-color 0.3s ease;
+      z-index: 10000;
+    }
+
+    #btn-add-number:hover {
+      background-color: #e65c2b;
+    }
   </style>
 </head>
 <body>
@@ -162,7 +272,34 @@
     </div>
   </div>
 
+  <!-- 右上「番号の追加」ボタン -->
+  <button id="btn-add-number">番号の追加</button>
+
+  <!-- ポップアップ -->
+  <div id="popup-overlay">
+    <div id="popup-box">
+      <div id="popup-message">ここにメッセージ</div>
+      <input type="text" id="popup-input" style="display:none" autocomplete="off" />
+      <div id="popup-buttons">
+        <!-- 動的にボタン追加 -->
+      </div>
+    </div>
+  </div>
+
   <script>
+    // 番号リスト管理用配列
+    let waitingCodes = [];
+    let callingCodes = [];
+
+    // 参照要素
+    const popupOverlay = document.getElementById("popup-overlay");
+    const popupMessage = document.getElementById("popup-message");
+    const popupButtons = document.getElementById("popup-buttons");
+    const popupInput = document.getElementById("popup-input");
+
+    let selectedCard = null;
+
+    // 番号生成（自動更新用）
     function generateRandomCodes(count) {
       const codes = [];
       for (let i = 0; i < count; i++) {
@@ -173,6 +310,7 @@
       return codes;
     }
 
+    // フェード付き画面更新（初期表示と自動更新用）
     function fadeUpdate(gridId, newCodes) {
       const grid = document.getElementById(gridId);
       const oldCards = grid.querySelectorAll('.card');
@@ -180,7 +318,6 @@
       // フェードアウト
       oldCards.forEach(card => card.classList.add('fade-out'));
 
-      // 新カードを追加（3秒後）
       setTimeout(() => {
         grid.innerHTML = "";
         newCodes.forEach(code => {
@@ -189,50 +326,186 @@
           div.textContent = code;
           grid.appendChild(div);
         });
-      }, 3000); // 3秒後に切り替え
-    }
-
-    function triggerGifAnimation() {
-      const gif = document.getElementById("current-gif");
-      const message = document.getElementById("gif-message");
-
-      // 新しいimg要素を作ってフェードインさせる
-      const newGif = gif.cloneNode(true);
-      newGif.src = "https://ava-a.mbga.jp/img_ava/401/2/0/1.10.24:373438531.gif";
-      newGif.classList.add("fade-in");
-
-      gif.parentNode.replaceChild(newGif, gif);
-      message.innerHTML = "召し上がれ！！！";
-
-      setTimeout(() => {
-        const resetGif = newGif.cloneNode(true);
-        resetGif.src = "https://ava-a.mbga.jp/img_ava/401/2/0/1.10.480:483463751.gif";
-        resetGif.classList.add("fade-in");
-
-        newGif.parentNode.replaceChild(resetGif, newGif);
-        message.innerHTML = "美味しい食べ物を<br>調理しています、、、";
-      }, 6000);
-    }
-
-    function updateLists() {
-      const newWaitingCodes = generateRandomCodes(6);
-      const newCallingCodes = generateRandomCodes(6);
-
-      fadeUpdate("waiting-list", newWaitingCodes);
-      fadeUpdate("calling-list", newCallingCodes);
-
-      // 番号のフェードアウト3秒後にGIFアニメーション開始
-      setTimeout(() => {
-        triggerGifAnimation();
+        addClickEvents(gridId);
       }, 3000);
     }
 
-    // 初期表示
-    fadeUpdate("waiting-list", generateRandomCodes(6));
-    fadeUpdate("calling-list", generateRandomCodes(6));
+    // フェードなし画面更新（追加・削除時）
+    function refreshLists() {
+      // waiting-list
+      const waitingGrid = document.getElementById("waiting-list");
+      waitingGrid.innerHTML = "";
+      waitingCodes.forEach(code => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.textContent = code;
+        waitingGrid.appendChild(div);
+      });
+      addClickEvents("waiting-list");
 
-    // 20秒ごとに更新
-    setInterval(updateLists, 20000);
+      // calling-list
+      const callingGrid = document.getElementById("calling-list");
+      callingGrid.innerHTML = "";
+      callingCodes.forEach(code => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.textContent = code;
+        callingGrid.appendChild(div);
+      });
+      addClickEvents("calling-list");
+    }
+
+    // カードにクリックイベントを付与（削除用）
+    function addClickEvents(gridId) {
+      const grid = document.getElementById(gridId);
+      const cards = grid.querySelectorAll('.card');
+      cards.forEach(card => {
+        card.onclick = () => {
+          selectedCard = card;
+          const code = card.textContent;
+          showDeletePopup(code);
+        };
+      });
+    }
+
+    // 削除ポップアップ表示
+    function showDeletePopup(code) {
+      popupInput.style.display = "none";
+      popupInput.value = "";
+      popupMessage.textContent = `『${code}』を削除しますか？`;
+      popupButtons.innerHTML = "";
+
+      const btnYes = document.createElement("button");
+      btnYes.textContent = "はい";
+      btnYes.id = "btn-yes";
+      btnYes.onclick = () => {
+        deleteCode(code);
+        hidePopup();
+      };
+
+      const btnNo = document.createElement("button");
+      btnNo.textContent = "いいえ";
+      btnNo.id = "btn-no";
+      btnNo.onclick = () => {
+        hidePopup();
+      };
+
+      popupButtons.appendChild(btnYes);
+      popupButtons.appendChild(btnNo);
+      popupOverlay.classList.add("show");
+    }
+
+    // ポップアップ非表示
+    function hidePopup() {
+      selectedCard = null;
+      popupOverlay.classList.remove("show");
+      popupInput.style.display = "none";
+      popupInput.value = "";
+    }
+
+    // 削除処理
+    function deleteCode(code) {
+      let idx;
+      idx = waitingCodes.indexOf(code);
+      if (idx !== -1) waitingCodes.splice(idx, 1);
+
+      idx = callingCodes.indexOf(code);
+      if (idx !== -1) callingCodes.splice(idx, 1);
+
+      refreshLists(); // フェードなし更新
+    }
+
+    // 右上「番号の追加」ボタン押下時
+    document.getElementById("btn-add-number").onclick = () => {
+      showAddChoicePopup();
+    };
+
+    // 「どちらに番号を追加しますか？」のポップアップ表示
+    function showAddChoicePopup() {
+      popupInput.style.display = "none";
+      popupInput.value = "";
+      popupMessage.textContent = "どちらに番号を追加しますか？";
+      popupButtons.innerHTML = "";
+
+      const btnWaiting = document.createElement("button");
+      btnWaiting.textContent = "呼び出し待ち番号";
+      btnWaiting.onclick = () => {
+        showNumberInputPopup("waiting");
+      };
+
+      const btnCalling = document.createElement("button");
+      btnCalling.textContent = "呼び出し中番号";
+      btnCalling.onclick = () => {
+        showNumberInputPopup("calling");
+      };
+
+      const btnCancel = document.createElement("button");
+      btnCancel.textContent = "キャンセル";
+      btnCancel.onclick = () => {
+        hidePopup();
+      };
+
+      popupButtons.appendChild(btnWaiting);
+      popupButtons.appendChild(btnCalling);
+      popupButtons.appendChild(btnCancel);
+      popupOverlay.classList.add("show");
+    }
+
+    // 番号入力ポップアップ表示（「追加する番号を入力してください」）
+    function showNumberInputPopup(targetList) {
+      popupMessage.textContent = `追加する番号を入力してください`;
+      popupInput.style.display = "block";
+      popupInput.value = "";
+      popupInput.focus();
+
+      popupButtons.innerHTML = "";
+
+      const btnAdd = document.createElement("button");
+      btnAdd.textContent = "入力完了";
+      btnAdd.onclick = () => {
+        const val = popupInput.value.trim();
+        if(val === "") {
+          alert("番号を入力してください。");
+          return;
+        }
+        addNumberToList(targetList, val);
+        hidePopup();
+      };
+
+      const btnBack = document.createElement("button");
+      btnBack.textContent = "戻る";
+      btnBack.onclick = () => {
+        showAddChoicePopup();
+      };
+
+      popupButtons.appendChild(btnAdd);
+      popupButtons.appendChild(btnBack);
+    }
+
+    // 配列に番号追加し画面更新（フェードなし）
+    function addNumberToList(listName, number) {
+      if (listName === "waiting") {
+        waitingCodes.push(number);
+      } else if (listName === "calling") {
+        callingCodes.push(number);
+      }
+      refreshLists();
+    }
+
+    // 自動更新（初期表示と自動更新はフェードあり）
+    function autoUpdate() {
+      waitingCodes = generateRandomCodes(9);
+      callingCodes = generateRandomCodes(9);
+      fadeUpdate("waiting-list", waitingCodes);
+      fadeUpdate("calling-list", callingCodes);
+    }
+
+    // 初期表示
+    window.onload = () => {
+      autoUpdate();
+      // 60秒ごとに自動更新
+      setInterval(autoUpdate, 60000);
+    };
   </script>
 </body>
 </html>
