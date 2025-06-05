@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>整理券番号表示</title>
-  <link href="https://fonts.googleapis.com/css2?family=Rounded+M+Plus+1c&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Rounded+M+Plus+1c&family=Potta+One&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       font-family: 'Rounded M Plus 1c', sans-serif;
-      background-color: #fff9f5;
+      background-color: white;
       height: 100vh;
       overflow: hidden;
     }
@@ -19,29 +19,49 @@
       height: 100vh;
     }
 
-    .column {
-      flex: 1;
-      box-sizing: border-box;
+    .left-third, .middle-third, .right-third {
+      height: 100%;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      box-sizing: border-box;
+    }
+
+    .left-third {
+      width: 33.3%;
+      border-right: 2px solid black;
+      color: #555;
+    }
+
+    .middle-third {
+      width: 33.3%;
+      border-right: 2px solid black;
+      color: #ff7043;
+    }
+
+    .right-third {
+      width: 33.3%;
+      background-color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
       padding: 20px;
     }
 
-    .left {
-      background-color: #ffe4e1;
-      border-right: 2px solid #ffc2c2;
+    .left-third .title-block {
+      background-color: #fff3cd;
     }
 
-    .right {
-      background-color: #e0f7fa;
+    .middle-third .title-block {
+      background-color: #fff176;
     }
 
-    h2 {
-      font-size: 2.2rem;
-      margin-bottom: 10px;
-      color: #444;
+    .title-block {
+      padding: 10px;
       text-align: center;
+      font-size: 2rem;
+      font-weight: bold;
+      border-bottom: 1px solid #ccc;
     }
 
     .grid {
@@ -49,8 +69,7 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 20px;
       justify-items: center;
-      max-width: 600px;
-      margin: 0 auto;
+      padding: 20px;
     }
 
     .card {
@@ -66,46 +85,70 @@
       text-align: center;
       border-radius: 16px;
       box-shadow: 2px 4px 10px rgba(0,0,0,0.1);
-      color: #333;
+      opacity: 1;
+      transition: opacity 3s ease;
     }
 
-    .gif-area {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
-      padding-top: 10px;
+    .fade-out {
+      opacity: 0;
+    }
+
+    .fade-in {
+      opacity: 1;
+    }
+
+    @keyframes pop-in {
+      0% {
+        transform: scale(0.5);
+        opacity: 0;
+      }
+      60% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    .card.pop-animate {
+      animation: pop-in 2s ease;
+    }
+
+    .message {
+      font-family: 'Potta One', cursive;
+      font-size: 2.2rem;
+      color: #ff4081;
+      margin-bottom: 20px;
+      text-align: center;
+      white-space: pre-line;
     }
 
     .gif-area img {
-      width: 350px;
+      width: 360px;
       height: auto;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- 左側 -->
-    <div class="column left">
-      <div>
-        <h2>呼び出し待ち番号</h2>
-        <div class="grid" id="waiting-list"></div>
-      </div>
-      <div class="gif-area">
-        <img src="https://ugokawaii.com/wp-content/uploads/2022/07/chef.gif" alt="シェフGIF">
-        <img src="https://ugokawaii.com/wp-content/uploads/2022/07/chef.gif" alt="シェフGIF">
-      </div>
+    <!-- 左 -->
+    <div class="left-third">
+      <div class="title-block">呼び出し待ち番号</div>
+      <div class="grid" id="waiting-list"></div>
     </div>
 
-    <!-- 右側 -->
-    <div class="column right">
-      <div>
-        <h2>呼び出し中番号</h2>
-        <div class="grid" id="calling-list"></div>
-      </div>
-      <div class="gif-area">
-        <img src="https://hiyokoyarou.com/wp-content/uploads/2022/09/cupramen-gif.gif" alt="ラーメンGIF">
-        <img src="https://hiyokoyarou.com/wp-content/uploads/2022/09/cupramen-gif.gif" alt="ラーメンGIF">
+    <!-- 中央 -->
+    <div class="middle-third">
+      <div class="title-block">呼び出し中番号</div>
+      <div class="grid" id="calling-list"></div>
+    </div>
+
+    <!-- 右 -->
+    <div class="right-third">
+      <div class="message" id="gif-message">美味しい食べ物を<br>調理しています、、、</div>
+      <div class="gif-area" id="gif-area">
+        <img id="current-gif" src="https://ava-a.mbga.jp/img_ava/401/2/0/1.10.480:483463751.gif" alt="料理GIF" />
       </div>
     </div>
   </div>
@@ -121,25 +164,54 @@
       return codes;
     }
 
-    const waitingList = generateRandomCodes(6);
-    const callingList = generateRandomCodes(6);
+    function fadeUpdate(gridId, newCodes) {
+      const grid = document.getElementById(gridId);
+      const oldCards = grid.querySelectorAll('.card');
 
-    const waitingGrid = document.getElementById("waiting-list");
-    const callingGrid = document.getElementById("calling-list");
+      // フェードアウト
+      oldCards.forEach(card => card.classList.add('fade-out'));
 
-    waitingList.forEach(code => {
-      const div = document.createElement("div");
-      div.className = "card";
-      div.textContent = code;
-      waitingGrid.appendChild(div);
-    });
+      // 新カードを追加（3秒後）
+      setTimeout(() => {
+        grid.innerHTML = "";
+        newCodes.forEach(code => {
+          const div = document.createElement("div");
+          div.className = "card pop-animate";
+          div.textContent = code;
+          grid.appendChild(div);
+        });
+      }, 3000); // 3秒後に切り替え
+    }
 
-    callingList.forEach(code => {
-      const div = document.createElement("div");
-      div.className = "card";
-      div.textContent = code;
-      callingGrid.appendChild(div);
-    });
+    function updateLists() {
+      const newWaitingCodes = generateRandomCodes(6);
+      const newCallingCodes = generateRandomCodes(6);
+
+      fadeUpdate("waiting-list", newWaitingCodes);
+      fadeUpdate("calling-list", newCallingCodes);
+
+      triggerGifAnimation();
+    }
+
+    function triggerGifAnimation() {
+      const gif = document.getElementById("current-gif");
+      const message = document.getElementById("gif-message");
+
+      gif.src = "https://ava-a.mbga.jp/img_ava/401/2/0/1.10.24:373438531.gif";
+      message.innerHTML = "召し上がれ！！！";
+
+      setTimeout(() => {
+        gif.src = "https://ava-a.mbga.jp/img_ava/401/2/0/1.10.480:483463751.gif";
+        message.innerHTML = "美味しい食べ物を<br>調理しています、、、";
+      }, 6000);
+    }
+
+    // 初期表示
+    fadeUpdate("waiting-list", generateRandomCodes(6));
+    fadeUpdate("calling-list", generateRandomCodes(6));
+
+    // 20秒ごとに更新
+    setInterval(updateLists, 20000);
   </script>
 </body>
 </html>
