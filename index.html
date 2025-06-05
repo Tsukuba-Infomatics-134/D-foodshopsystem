@@ -115,6 +115,15 @@
       animation: pop-in 2s ease;
     }
 
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .gif-area img.fade-in {
+      animation: fadeIn 1.5s ease;
+    }
+
     .message {
       font-family: 'Potta One', cursive;
       font-size: 2.2rem;
@@ -183,6 +192,28 @@
       }, 3000); // 3秒後に切り替え
     }
 
+    function triggerGifAnimation() {
+      const gif = document.getElementById("current-gif");
+      const message = document.getElementById("gif-message");
+
+      // 新しいimg要素を作ってフェードインさせる
+      const newGif = gif.cloneNode(true);
+      newGif.src = "https://ava-a.mbga.jp/img_ava/401/2/0/1.10.24:373438531.gif";
+      newGif.classList.add("fade-in");
+
+      gif.parentNode.replaceChild(newGif, gif);
+      message.innerHTML = "召し上がれ！！！";
+
+      setTimeout(() => {
+        const resetGif = newGif.cloneNode(true);
+        resetGif.src = "https://ava-a.mbga.jp/img_ava/401/2/0/1.10.480:483463751.gif";
+        resetGif.classList.add("fade-in");
+
+        newGif.parentNode.replaceChild(resetGif, newGif);
+        message.innerHTML = "美味しい食べ物を<br>調理しています、、、";
+      }, 6000);
+    }
+
     function updateLists() {
       const newWaitingCodes = generateRandomCodes(6);
       const newCallingCodes = generateRandomCodes(6);
@@ -190,20 +221,10 @@
       fadeUpdate("waiting-list", newWaitingCodes);
       fadeUpdate("calling-list", newCallingCodes);
 
-      triggerGifAnimation();
-    }
-
-    function triggerGifAnimation() {
-      const gif = document.getElementById("current-gif");
-      const message = document.getElementById("gif-message");
-
-      gif.src = "https://ava-a.mbga.jp/img_ava/401/2/0/1.10.24:373438531.gif";
-      message.innerHTML = "召し上がれ！！！";
-
+      // 番号のフェードアウト3秒後にGIFアニメーション開始
       setTimeout(() => {
-        gif.src = "https://ava-a.mbga.jp/img_ava/401/2/0/1.10.480:483463751.gif";
-        message.innerHTML = "美味しい食べ物を<br>調理しています、、、";
-      }, 6000);
+        triggerGifAnimation();
+      }, 3000);
     }
 
     // 初期表示
