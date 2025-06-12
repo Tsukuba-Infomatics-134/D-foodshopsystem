@@ -501,8 +501,8 @@
 
     // 自動更新（初期表示と自動更新はフェードあり）
     function autoUpdate() {
-      waitingCodes = generateRandomCodes(9);
-      callingCodes = generateRandomCodes(9);
+      // waitingCodes = generateRandomCodes(9);
+      // callingCodes = generateRandomCodes(9);
       fadeUpdate("waiting-list", waitingCodes);
       fadeUpdate("calling-list", callingCodes);
     }
@@ -577,6 +577,20 @@
                   if (ret != null && ret.length > 0) {
                       //ここに更新時の挙動を書く
                       //document.getElementById("log").innerHTML += "<br>" + JSON.stringify(await ret);
+                        // ret内のstatusが「呼び出し中」のorder_idをcallingCodesに追加
+                        callingCodes = callingCodes.concat(
+                          ret
+                            .filter(item => item.status === "呼び出し中")
+                            .map(item => item.order_id)
+                        );
+                        refreshLists();
+
+                        waitingCodes = waitingCodes.concat(
+                          ret
+                            .filter(item => item.status === "呼び出し待ち")
+                            .map(item => item.order_id)
+                        );
+                        
                   }
                   if (isLogin) {
                       setTimeout(() => {checkInterval()}, 1000)
