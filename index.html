@@ -250,38 +250,45 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- 左 -->
-    <div class="left-third">
-      <div class="title-block">呼び出し待ち番号</div>
-      <div class="grid" id="waiting-list"></div>
+  <div id="login">
+        <p>パスワードを入力してください。</p>
+        <input type="password" id="pass" placeholder="パスワードを入力">
+        <button onclick="login()">ログイン</button>
     </div>
+  <div id="main" style="display:none;">
+    <div class="container">
+      <!-- 左 -->
+      <div class="left-third">
+        <div class="title-block">呼び出し待ち番号</div>
+        <div class="grid" id="waiting-list"></div>
+      </div>
 
-    <!-- 中央 -->
-    <div class="middle-third">
-      <div class="title-block">呼び出し中番号</div>
-      <div class="grid" id="calling-list"></div>
-    </div>
+      <!-- 中央 -->
+      <div class="middle-third">
+        <div class="title-block">呼び出し中番号</div>
+        <div class="grid" id="calling-list"></div>
+      </div>
 
-    <!-- 右 -->
-    <div class="right-third">
-      <div class="message" id="gif-message">美味しい食べ物を<br>調理しています、、、</div>
-      <div class="gif-area" id="gif-area">
-        <img id="current-gif" src="https://ava-a.mbga.jp/img_ava/401/2/0/1.10.480:483463751.gif" alt="料理GIF" />
+      <!-- 右 -->
+      <div class="right-third">
+        <div class="message" id="gif-message">美味しい食べ物を<br>調理しています、、、</div>
+        <div class="gif-area" id="gif-area">
+          <img id="current-gif" src="https://ava-a.mbga.jp/img_ava/401/2/0/1.10.480:483463751.gif" alt="料理GIF" />
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- 右上「番号の追加」ボタン -->
-  <button id="btn-add-number">番号の追加</button>
+    <!-- 右上「番号の追加」ボタン -->
+    <button id="btn-add-number">番号の追加</button>
 
-  <!-- ポップアップ -->
-  <div id="popup-overlay">
-    <div id="popup-box">
-      <div id="popup-message">ここにメッセージ</div>
-      <input type="text" id="popup-input" style="display:none" autocomplete="off" />
-      <div id="popup-buttons">
-        <!-- 動的にボタン追加 -->
+    <!-- ポップアップ -->
+    <div id="popup-overlay">
+      <div id="popup-box">
+        <div id="popup-message">ここにメッセージ</div>
+        <input type="text" id="popup-input" style="display:none" autocomplete="off" />
+        <div id="popup-buttons">
+          <!-- 動的にボタン追加 -->
+        </div>
       </div>
     </div>
   </div>
@@ -506,6 +513,102 @@
       // 10秒ごとに自動更新
       setInterval(autoUpdate, 10000);
     };
+
+    const apiurl = "http://localhost:80/"
+    let auth_key = null;
+    let isLogin = false;
+
+    function check() {
+        return fetch(apiurl + 'check', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                "authorization": auth_key
+            }
+        }).then(response => {
+            if (response.status === 200) {
+                return response.json();
+            } else {
+                console.error('Error:', response.text());
+                return null;
+            }
+        }).catch(error => {
+            console.error('Error:', error);
+            alert("ログイン中にエラーが発生しました。");
+            return null;
+        });
+    }
+
+    function login() {
+      const password = document.getElementById('pass').value;
+      fetch(apiurl + 'login', {
+          method: 'GET',
+          headers: {
+              'Content-Type': 'application/json',
+              "password": password
+          }
+      }).then(response => {
+          const data = response.json();
+          if (response.status === 200) {
+              return data;
+          } else if (response.status === 401) {
+              alert("パスワードが違います");
+              return null;
+          } else {
+              alert("ログイン中にエラーが発生しました。");
+              return null;
+          }
+      }).then(data => {
+          if (data == null) {
+              return;
+          }
+          console.log(data);
+          isLogin = true;
+          auth_key = data["token"];
+          document.getElementById('login').style.display = 'none';
+          document.getElementById('main').style.display = 'block';
+          // document.getElementById("pass").value = "";
+          // document.getElementById("status").innerHTML = data["user"];
+          // document.getElementById("log").innerHTML = "";
+          // document.getElementById("type_").innerHTML = data["type"];
+          const checkInterval = () => {
+              check().then(async ret => {
+                  console.log("checked", ret)
+                  if (ret != null && ret.length > 0) {
+                      //ここに更新時の挙動を書く
+                      //document.getElementById("log").innerHTML += "<br>" + JSON.stringify(await ret);
+                  }
+                  if (isLogin) {
+                      setTimeout(() => {checkInterval()}, 1000)
+                  }
+              })
+          }
+          checkInterval();
+          console.log("checkInterval start");
+          fetch(apiurl + 'log_all', {
+              method: 'GET',
+              headers: {
+                  'Content-Type': 'application/json',
+                  "authorization": auth_key
+              }
+          }).then(response => {
+              if (response.status === 200) {
+                  return response.json();
+              } else {
+                  console.error('Error:', response.text());
+              }
+          }).then(data => {
+              if (data == null) {
+                  return;
+              }
+              console.log("logall", data);
+          })
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          alert("ログイン中にエラーが発生しました。");
+      });
+    }
   </script>
 </body>
 </html>
