@@ -334,7 +334,7 @@
           grid.appendChild(div);
         });
         addClickEvents(gridId);
-      }, 3000);
+      }, 300);
     }
 
     // フェードなし画面更新（追加・削除時）
@@ -514,7 +514,7 @@
       setInterval(autoUpdate, 10000);
     };
 
-    const apiurl = "http://localhost:80/"
+    const apiurl = "https://api.yaakiyu.f5.si/"
     let auth_key = null;
     let isLogin = false;
 
@@ -577,19 +577,33 @@
                   if (ret != null && ret.length > 0) {
                       //ここに更新時の挙動を書く
                       //document.getElementById("log").innerHTML += "<br>" + JSON.stringify(await ret);
-                        // ret内のstatusが「呼び出し中」のorder_idをcallingCodesに追加
-                        callingCodes = callingCodes.concat(
-                          ret
-                            .filter(item => item.status === "呼び出し中")
-                            .map(item => item.order_id)
-                        );
-                        refreshLists();
+                        ret.forEach(item => {
+                          if(item["status"] === "呼び出し中") {
+                            if(!callingCodes.includes(item["order_id"])) {
+                              callingCodes.push(item["order_id"]);
+                            }
+                            if(waitingCodes.includes(item["order_id"])) {
+                              waitingCodes.splice(waitingCodes.indexOf(item["order_id"]), 1);
+                            }
+                          } else if(item["status"] === "呼び出し待ち") {
+                            if(!waitingCodes.includes(item["order_id"])) {
+                              waitingCodes.push(item["order_id"]);
+                            }
+                            if(callingCodes.includes(item["order_id"])) {
+                              callingCodes.splice(callingCodes.indexOf(item["order_id"]), 1);
+                            }
+                          } else {
+                            if(callingCodes.includes(item["order_id"])) {
+                              callingCodes.splice(callingCodes.indexOf(item["order_id"]), 1);
+                            }
+                            if(waitingCodes.includes(item["order_id"])) {
+                              waitingCodes.splice(waitingCodes.indexOf(item["order_id"]), 1);
+                            }
+                          }
+                        });
+                        
 
-                        waitingCodes = waitingCodes.concat(
-                          ret
-                            .filter(item => item.status === "呼び出し待ち")
-                            .map(item => item.order_id)
-                        );
+                        refreshLists();
                         
                   }
                   if (isLogin) {
@@ -599,6 +613,7 @@
           }
           checkInterval();
           console.log("checkInterval start");
+
           fetch(apiurl + 'log_all', {
               method: 'GET',
               headers: {
@@ -611,11 +626,22 @@
               } else {
                   console.error('Error:', response.text());
               }
-          }).then(data => {
-              if (data == null) {
+          }).then(ret => {
+            // console.log("logall", ret);
+              if (ret == null) {
                   return;
               }
-              console.log("logall", data);
+              callingCodes = [];
+              waitingCodes = [];
+              for (const key in ret) {
+                console.log(key, ret[key].status);
+                if (ret[key].status === "呼び出し中") {
+                  callingCodes.push(parseInt(key));
+                } else if (ret[key].status === "呼び出し待ち") {
+                  waitingCodes.push(parseInt(key));
+                }
+              }
+
           })
       })
       .catch(error => {
