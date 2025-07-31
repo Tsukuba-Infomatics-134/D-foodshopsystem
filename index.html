@@ -635,7 +635,7 @@
               waitingCodes = [];
               for (const key in ret) {
                 console.log(key, ret[key].status);
-                if (ret[key].status === "呼び出し中") {
+                if (ret[key].status === "呼び出し中" || ret[key].status === "調理待ち" || ret[key].status === "調理中" || ret[key].status === "調理済み") {
                   callingCodes.push(parseInt(key));
                 } else if (ret[key].status === "呼び出し待ち") {
                   waitingCodes.push(parseInt(key));
