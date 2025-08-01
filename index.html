@@ -578,7 +578,7 @@
                       //ここに更新時の挙動を書く
                       //document.getElementById("log").innerHTML += "<br>" + JSON.stringify(await ret);
                         ret.forEach(item => {
-                          if(item["status"] === "呼び出し中" || ret[key].status === "調理待ち" || ret[key].status === "調理中" || ret[key].status === "調理済み") {
+                          if(item["status"] === "呼び出し中" || item["status"] === "調理待ち" || item["status"] === "調理中" || item["status"] === "調理済み") {
                             if(!callingCodes.includes(item["order_id"])) {
                               callingCodes.push(item["order_id"]);
                             }
