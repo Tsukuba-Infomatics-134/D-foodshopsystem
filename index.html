@@ -257,6 +257,23 @@
       #btn-add-number:hover {
         background-color: #e65c2b;
       }
+      #wait-counter {
+        position: fixed;
+        top: 100px;
+        right: 50px;
+        margin: 0;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid #eee;
+        border-radius: 8px;
+        font-size: 2rem;
+        font-weight: 600;
+        color: #333;
+        z-index: 9999;
+      }
+      #current-number {
+        font-weight: 700;
+      }
     </style>
   </head>
   <body>
@@ -296,6 +313,9 @@
 
       <!-- 右上「番号の追加」ボタン -->
       <button id="btn-add-number">番号の追加</button>
+      <p id="wait-counter">
+        現在の待ち人数: <span id="current-number">0</span>
+      </p>
 
       <!-- ポップアップ -->
       <div id="popup-overlay">
@@ -347,7 +367,8 @@
 
         // フェードアウト
         // oldCards.forEach((card) => card.classList.add("fade-out"));
-
+        document.getElementById("current-number").textContent =
+          waitingCodes.length;
         setTimeout(() => {
           grid.innerHTML = "";
           newCodes.forEach((code) => {
@@ -383,6 +404,9 @@
           callingGrid.appendChild(div);
         });
         addClickEvents("calling-list");
+        console.log("え～", waitingCodes.length);
+        document.getElementById("current-number").textContent =
+          waitingCodes.length;
       }
 
       // カードにクリックイベントを付与（削除用）
