@@ -457,17 +457,19 @@
         popupInput.value = "";
       }
 
+      // 削除処理で string/number の差を吸収するためのユーティリティを追加
+      function removeFromArrayByCode(arr, code) {
+        const idx = arr.findIndex(v => String(v) === String(code));
+        if (idx !== -1) arr.splice(idx, 1);
+      }
+
       // 削除処理
       function deleteCode(code) {
-        let idx;
-        idx = waitingCodes.indexOf(code);
-        if (idx !== -1) waitingCodes.splice(idx, 1);
-
-        idx = callingCodes.indexOf(code);
-        if (idx !== -1) callingCodes.splice(idx, 1);
-
+        removeFromArrayByCode(waitingCodes, code);
+        removeFromArrayByCode(callingCodes, code);
         refreshLists(); // フェードなし更新
       }
+
 
       // 右上「番号の追加」ボタン押下時
       document.getElementById("btn-add-number").onclick = () => {
