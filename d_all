@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>整理券番号表示</title>
+<style>
+  html, body {
+    margin:0;
+    height:100%;
+    font-family:sans-serif;
+    overflow:hidden;
+  }
+
+  #bg {
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background-size:cover;
+    background-position:center;
+    z-index:-1;
+    opacity:1;
+    transition: opacity 1s ease-in-out;
+  }
+
+  .area {
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+  }
+
+  body {
+    display:flex;
+    height:100vh;
+  }
+
+  .tickets {
+    display:grid;
+    grid-template-columns:repeat(4, 70px);
+    grid-template-rows:repeat(5, 50px);
+    gap:35px;
+    opacity:1;
+    transition: opacity 0.5s;
+    margin-bottom:20px;
+    margin-top:50px;
+  }
+
+  .ticket {
+    width:90px;
+    height:60px;
+    border:2px solid black;
+    text-align:center;
+    line-height:60px;
+    font-size:28px;
+    background:white;
+    font-weight:bold;
+    border-radius:5px;
+  }
+
+  .single-number {
+    position:absolute;
+    bottom:5%;
+    left:65%;
+    transform:translateX(-50%);
+    font-size:58px;
+    font-weight:bold;
+  }
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+
+<div class="area" id="area1">
+  <div class="tickets" id="tickets1"></div>
+  <div class="single-number" id="single1"></div>
+</div>
+<div class="area" id="area2">
+  <div class="tickets" id="tickets2"></div>
+  <div class="single-number" id="single2"></div>
+</div>
+<div class="area" id="area3">
+  <div class="tickets" id="tickets3"></div>
+  <div class="single-number" id="single3"></div>
+</div>
+
+<script>
+function randomTickets(count){
+  const tickets = [];
+  for(let i=0;i<count;i++){
+    tickets.push(Math.floor(Math.random()*1000));
+  }
+  return tickets;
+}
+
+function updateArea(ticketsId, singleId){
+  const ticketsContainer = document.getElementById(ticketsId);
+  const singleContainer = document.getElementById(singleId);
+
+  ticketsContainer.style.opacity = 0;
+  singleContainer.style.opacity = 0;
+
+  setTimeout(()=>{
+    ticketsContainer.innerHTML = '';
+    const nums = randomTickets(20);
+    nums.forEach(num=>{
+      const div = document.createElement('div');
+      div.className = 'ticket';
+      div.textContent = num;
+      ticketsContainer.appendChild(div);
+    });
+
+    singleContainer.textContent = Math.floor(Math.random()*50);
+
+    ticketsContainer.style.opacity = 1;
+    singleContainer.style.opacity = 1;
+  }, 500);
+}
+
+// 背景画像リスト
+const bgImages = ["bg1.png","bg2.png"];
+let bgIndex = 0;
+const bgDiv = document.getElementById("bg");
+
+function switchBackground(){
+  bgIndex = (bgIndex + 1) % bgImages.length;
+  bgDiv.style.opacity = 0;
+  setTimeout(()=>{
+    bgDiv.style.backgroundImage = `url('${bgImages[bgIndex]}')`;
+    bgDiv.style.opacity = 1;
+  }, 500);
+}
+
+// 初回
+updateArea('tickets1','single1');
+updateArea('tickets2','single2');
+updateArea('tickets3','single3');
+bgDiv.style.backgroundImage = `url('${bgImages[bgIndex]}')`;
+
+// 10秒ごとに更新 & 背景切替
+setInterval(()=>{
+  updateArea('tickets1','single1');
+  updateArea('tickets2','single2');
+  updateArea('tickets3','single3');
+  switchBackground();
+}, 15000);
+</script>
+
+</body>
+</html>
