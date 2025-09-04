@@ -70,53 +70,72 @@
 </style>
 </head>
 <body>
+  <div id="login">
+    <p>パスワードを入力してください。</p>
+    <input type="password" id="pass" placeholder="パスワードを入力" />
+    <button onclick="login()">ログイン</button>
+  </div>
+  <div id="main" style="display: none;">
+    <div id="bg"></div>
 
-<div id="bg"></div>
-
-<div class="area" id="area1">
-  <div class="tickets" id="tickets1"></div>
-  <div class="single-number" id="single1"></div>
-</div>
-<div class="area" id="area2">
-  <div class="tickets" id="tickets2"></div>
-  <div class="single-number" id="single2"></div>
-</div>
-<div class="area" id="area3">
-  <div class="tickets" id="tickets3"></div>
-  <div class="single-number" id="single3"></div>
-</div>
-
+    <div class="area" id="area1">
+      <div class="tickets" id="tickets1"></div>
+      <div class="single-number" id="single1"></div>
+    </div>
+    <div class="area" id="area2">
+      <div class="tickets" id="tickets2"></div>
+      <div class="single-number" id="single2"></div>
+    </div>
+    <div class="area" id="area3">
+      <div class="tickets" id="tickets3"></div>
+      <div class="single-number" id="single3"></div>
+    </div>
+  </div>
 <script>
-function randomTickets(count){
-  const tickets = [];
-  for(let i=0;i<count;i++){
-    tickets.push(Math.floor(Math.random()*1000));
-  }
-  return tickets;
+const apiurl_production = "https://api.yaakiyu.f5.si/";
+const apiurl_dev = "http://localhost:80/";
+let apiurl = apiurl_production;
+let auth_key = null;
+let isLogin = false;
+const allClassData = [{}, {}, {}, {}, {}, {}];
+
+
+// devサーバーが生きていればapiurlをdevに切り替える
+function tryDevApiUrlSwitch() {
+  fetch(apiurl_dev + "version", { method: "GET", cache: "no-store" })
+    .then(res => {
+      if (res.ok) {
+        apiurl = apiurl_dev;
+        console.warn("apiurlを開発環境に切り替えました");
+      }
+    })
+    .catch(() => {
+      // devサーバーが落ちている場合は何もしない
+    });
 }
+tryDevApiUrlSwitch();
 
-function updateArea(ticketsId, singleId){
-  const ticketsContainer = document.getElementById(ticketsId);
-  const singleContainer = document.getElementById(singleId);
 
-  ticketsContainer.style.opacity = 0;
-  singleContainer.style.opacity = 0;
+function updateAllArea(){
+  for (let i = 1; i < 4; i++) {
+    const classNumber = 3 * bgIndex + i;
+    const ticketsContainer = document.getElementById(`tickets${i}`);
+    const singleContainer = document.getElementById(`single${i}`);
 
-  setTimeout(()=>{
     ticketsContainer.innerHTML = '';
-    const nums = randomTickets(20);
-    nums.forEach(num=>{
+    const nums = Object.entries(allClassData[classNumber - 1]).filter((st) => st[1] === "呼び出し中");
+    console.log(nums);
+    nums.forEach((num) => {
       const div = document.createElement('div');
       div.className = 'ticket';
-      div.textContent = num;
+      div.textContent = num[0];
       ticketsContainer.appendChild(div);
     });
 
-    singleContainer.textContent = Math.floor(Math.random()*50);
-
-    ticketsContainer.style.opacity = 1;
-    singleContainer.style.opacity = 1;
-  }, 500);
+    const waiting = Object.values(allClassData[classNumber - 1]).filter((st) => st === "呼び出し待ち").length;
+    singleContainer.textContent = waiting.toString();
+    console.log(waiting);
+  }
 }
 
 // 背景画像リスト
@@ -133,19 +152,111 @@ function switchBackground(){
   }, 500);
 }
 
-// 初回
-updateArea('tickets1','single1');
-updateArea('tickets2','single2');
-updateArea('tickets3','single3');
-bgDiv.style.backgroundImage = `url('${bgImages[bgIndex]}')`;
 
-// 10秒ごとに更新 & 背景切替
-setInterval(()=>{
-  updateArea('tickets1','single1');
-  updateArea('tickets2','single2');
-  updateArea('tickets3','single3');
-  switchBackground();
-}, 15000);
+function check() {
+  return fetch(apiurl + "check", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      authorization: auth_key,
+    },
+  }).then(async (response) => {
+    if (response.status === 200) {
+      return await response.json();
+    } else {
+      console.error("Error:", await response.text());
+      return null;
+    }
+  }).catch((error) => {
+    console.error("Error:", error);
+    alert("ログイン中にエラーが発生しました。");
+    return null;
+  });
+}
+
+
+function login() {
+  const password = document.getElementById("pass").value;
+  fetch(apiurl + "login", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      password: password,
+    },
+  }).then(async (response) => {
+    const data = await response.json();
+    if (response.status === 401) {
+      alert("パスワードが違います");
+      return;
+    } else if (!response.ok) {
+      alert("ログイン中にエラーが発生しました。");
+      console.error(data);
+      return;
+    } else if (data["user"] <= 6 || data["type"] !== "d") {
+      alert("このユーザーには対応していません。");
+      return;
+    }
+    console.log(data);
+    isLogin = true;
+    auth_key = data["token"];
+    document.getElementById("login").style.display = "none";
+    document.getElementById("main").style.display = "flex";
+    document.getElementById("pass").value = "";
+
+    const checkInterval = () => {
+      if (!isLogin) return;
+      check().then(async (ret) => {
+        if (ret != null && ret.length > 0) {
+          //ここに更新時の挙動を書く
+          ret.forEach((item) => {
+           if (item["user"] < 1 || item["user"] > 6) return;
+            allClassData[item["user"]-1][item["order_id"]] = item["status"]
+          });
+          updateAllArea();
+        }
+        setTimeout(() => {
+          checkInterval();
+        }, 2000);
+      });
+    };
+
+    fetch(apiurl + "log_all", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: auth_key,
+      },
+    }).then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        console.error("Error:", await response.text());
+        alert("ログイン中にエラーが発生しました。");
+        return;
+      }
+      console.log(data);
+      for (const key in data) {
+        const order = data[key];
+        if (order["user"] < 1 || order["user"] > 6) continue;
+        allClassData[order["user"]-1][order["id"]] = order["status"];
+      }
+      updateAllArea();
+    });
+
+    checkInterval();
+    console.log("checkInterval start");
+
+    bgDiv.style.backgroundImage = `url('${bgImages[bgIndex]}')`;
+
+    // 15秒ごとに背景切替
+    setInterval(()=>{
+      switchBackground();
+      updateAllArea();
+    }, 15000);
+  }).catch((error) => {
+    console.error("Error:", error);
+    alert("ログイン中にエラーが発生しました。");
+  });
+}
 </script>
 
 </body>
