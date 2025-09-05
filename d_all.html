@@ -19,7 +19,7 @@
     background-position:center;
     z-index:-1;
     opacity:1;
-    transition: opacity 1s ease-in-out;
+    transition: opacity 2s ease-in-out;
   }
 
   .area {
@@ -30,6 +30,22 @@
     align-items:center;
     position:relative;
   }
+
+#area1 {
+  margin-left: 75px;   /* 左からの位置 */
+  margin-top: 20px;    /* 上からの位置 */
+}
+
+#area2 {
+  margin-left: 300px;
+  margin-top: 20px;
+}
+
+#area3 {
+  margin-left: 275px;
+  margin-top: 20px;
+}
+
 
   body {
     display:flex;
@@ -42,7 +58,7 @@
     grid-template-rows:repeat(5, 50px);
     gap:35px;
     opacity:1;
-    transition: opacity 0.5s;
+    transition: opacity 2.0s;
     margin-bottom:20px;
     margin-top:50px;
   }
@@ -59,10 +75,14 @@
     border-radius:5px;
   }
 
+.single-number {
+    transition: opacity 2s ease-in-out;
+}
+
 #single1 {
   position:absolute;
   bottom:3%;
-  left:100%;
+  left:80%;
   font-size:68px;
   font-weight:bold;
   transform:none;
@@ -71,7 +91,7 @@
 #single2 {
   position:absolute;
   bottom:3%;
-  left:180%;
+  left:80%;
   font-size:68px;
   font-weight:bold;
   transform:translateX(-50%);
@@ -80,7 +100,7 @@
 #single3 {
   position:absolute;
   bottom:3%;
-  left:240%;
+  left:60%;
   font-size:68px;
   font-weight:bold;
   transform:none;
@@ -152,7 +172,16 @@ function updateAllArea(){
     });
 
     const waiting = Object.values(allClassData[classNumber - 1]).filter((st) => st === "呼び出し待ち").length;
-    singleContainer.textContent = waiting.toString();
+    // フェードアウト開始
+    singleContainer.style.opacity = 0;
+
+    setTimeout(() => {
+    // 内容を更新
+        singleContainer.textContent = waiting.toString();
+    // フェードイン開始
+        singleContainer.style.opacity = 1;
+   }, 200); // 0.2秒後に更新
+
     console.log(waiting);
   }
 }
