@@ -336,6 +336,16 @@
     </div>
 
     <script>
+      // 各クラスの画像リンク
+      const cookingImageUrls = [
+        "",
+        "",
+        "",
+        "",
+        "images/5.jpg",
+        ""
+      ]
+
       // 番号リスト管理用配列
       let waitingCodes = [];
       let callingCodes = [];
@@ -621,8 +631,8 @@
             alert("ログイン中にエラーが発生しました。");
             return;
           }
-          if (data["type"] !== "d") {
-            alert("このページはd専用です。" + data["type"] + "ではログインできません。");
+          if (data["type"] !== "d" || data["user"] > 6) {
+            alert(`このページはd専用です。${data["user"]}-${data["type"]}ではログインできません。`);
             return;
           }
           console.log(data);
@@ -631,6 +641,7 @@
           document.getElementById("login").style.display = "none";
           document.getElementById("main").style.display = "block";
           document.getElementById("pass").value = "";
+          document.getElementById("current-gif").src = cookingImageUrls[data["user"]-1] || "images/toinfes-logo.png";
           const checkInterval = () => {
             if (!isLogin) return null;
             check().then(async (ret) => {
