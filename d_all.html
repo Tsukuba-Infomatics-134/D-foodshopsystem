@@ -91,7 +91,7 @@
 #single2 {
   position:absolute;
   bottom:3%;
-  left:80%;
+  left:77%;
   font-size:68px;
   font-weight:bold;
   transform:translateX(-50%);
@@ -106,6 +106,13 @@
   transform:none;
 }
 
+#error {
+  margin: 15%;
+  text-align: center;
+  font-size: 6rem;
+  color: red;
+}
+
 </style>
 </head>
 <body>
@@ -114,6 +121,7 @@
     <input type="password" id="pass" placeholder="パスワードを入力" />
     <button onclick="login()">ログイン</button>
   </div>
+  <div id="error" style="display: none;">エラーが発生しました。担当者に連絡してください。</div>
   <div id="main" style="display: none;">
     <div id="bg"></div>
 
@@ -192,6 +200,16 @@ function switchBackground(){
 }
 
 
+function displayError() {
+  document.getElementById("error").style.display = "block";
+  document.getElementById("main").style.display = "none";
+}
+function returnNormal() {
+  document.getElementById("error").style.display = "none";
+  document.getElementById("main").style.display = "flex";
+}
+
+
 function check() {
   return fetch(apiurl + "check", {
     method: "GET",
@@ -201,14 +219,18 @@ function check() {
     },
   }).then(async (response) => {
     if (response.status === 200) {
+      returnNormal();
       return await response.json();
+    } else if (response.status === 429) {
+      return null; // レート制限エラーは無視
     } else {
+      displayError();
       console.error("Error:", await response.text());
       return null;
     }
   }).catch((error) => {
     console.error("Error:", error);
-    alert("ログイン中にエラーが発生しました。");
+    displayError();
     return null;
   });
 }
@@ -267,6 +289,12 @@ function login() {
       },
     }).then(async (response) => {
       const data = await response.json();
+      if (response.status === 429) {
+        const after = response.headers.get("Retry-After");
+        console.log("Rate limited. Retry after", after, "seconds");
+        setTimeout(login, parseFloat(after) * 1000);
+        return;
+      }
       if (!response.ok) {
         console.error("Error:", await response.text());
         alert("ログイン中にエラーが発生しました。");
