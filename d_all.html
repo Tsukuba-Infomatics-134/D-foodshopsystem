@@ -163,7 +163,6 @@ function updateAllArea(){
 
     ticketsContainer.innerHTML = '';
     const nums = Object.entries(allClassData[classNumber - 1]).filter((st) => st[1] === "呼び出し中");
-    console.log(nums);
     nums.forEach((num) => {
       const div = document.createElement('div');
       div.className = 'ticket';
@@ -172,17 +171,13 @@ function updateAllArea(){
     });
 
     const waiting = Object.values(allClassData[classNumber - 1]).filter((st) => st === "呼び出し待ち").length;
-    // フェードアウト開始
-    singleContainer.style.opacity = 0;
+    singleContainer.textContent = waiting.toString();
 
-    setTimeout(() => {
-    // 内容を更新
-        singleContainer.textContent = waiting.toString();
-    // フェードイン開始
-        singleContainer.style.opacity = 1;
-   }, 200); // 0.2秒後に更新
-
-    console.log(waiting);
+    if (classNumber === 6) {
+      // 6組はどんな状況でも表示しない
+      singleContainer.textContent = "";
+      ticketsContainer.innerHTML = '';
+    }
   }
 }
 
@@ -193,11 +188,7 @@ const bgDiv = document.getElementById("bg");
 
 function switchBackground(){
   bgIndex = (bgIndex + 1) % bgImages.length;
-  bgDiv.style.opacity = 0;
-  setTimeout(()=>{
-    bgDiv.style.backgroundImage = `url('${bgImages[bgIndex]}')`;
-    bgDiv.style.opacity = 1;
-  }, 500);
+  bgDiv.style.backgroundImage = `url('${bgImages[bgIndex]}')`;
 }
 
 
