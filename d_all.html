@@ -292,6 +292,8 @@ function login() {
       if (response.status === 429) {
         const after = response.headers.get("Retry-After");
         console.log("Rate limited. Retry after", after, "seconds");
+        isLogin = false;
+        document.getElementById("pass").value = password;
         setTimeout(login, parseFloat(after) * 1000);
         return;
       }

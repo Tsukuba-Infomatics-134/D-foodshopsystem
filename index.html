@@ -282,6 +282,7 @@
       <input type="password" id="pass" placeholder="パスワードを入力" />
       <button onclick="login()">ログイン</button>
     </div>
+    <div id="offline" style="position: fixed; top: 2%; left: 85%; color: #777; font-size: 0.7rem; display: none;">オフライン中</div>
     <div id="main" style="display: none">
       <div class="container">
         <!-- 左 -->
@@ -347,19 +348,6 @@
 
       let selectedCard = null;
 
-      // 番号生成（自動更新用）
-      function generateRandomCodes(count) {
-        const codes = [];
-        for (let i = 0; i < count; i++) {
-          const letter = String.fromCharCode(
-            65 + Math.floor(Math.random() * 26)
-          );
-          const number = String(Math.floor(Math.random() * 900) + 100);
-          codes.push(letter + number);
-        }
-        return codes;
-      }
-
       // フェード付き画面更新（初期表示と自動更新用）
       function fadeUpdate(gridId, newCodes) {
         const grid = document.getElementById(gridId);
@@ -404,9 +392,7 @@
           callingGrid.appendChild(div);
         });
         addClickEvents("calling-list");
-        console.log("え～", waitingCodes.length);
-        document.getElementById("current-number").textContent =
-          waitingCodes.length;
+        document.getElementById("current-number").textContent = waitingCodes.length;
       }
 
       // カードにクリックイベントを付与（削除用）
@@ -567,6 +553,7 @@
       let apiurl = "https://api.yaakiyu.f5.si/";
       let auth_key = null;
       let isLogin = false;
+      let isOnline = true;
 
 
       // devサーバーが生きていればapiurlをdevに切り替える
@@ -585,6 +572,12 @@
       tryDevApiUrlSwitch();
 
 
+      function setOnlineStatus(online) {
+        isOnline = online;
+        document.getElementById("offline").style.display = isOnline ? "none" : "block";
+      }
+
+
       function check() {
         return fetch(apiurl + "check", {
           method: "GET",
@@ -595,15 +588,17 @@
         })
           .then((response) => {
             if (response.status === 200) {
+              setOnlineStatus(true);
               return response.json();
             } else {
               console.error("Error:", response.text());
+              setOnlineStatus(false);
               return null;
             }
           })
           .catch((error) => {
             console.error("Error:", error);
-            alert("ログイン中にエラーが発生しました。");
+            setOnlineStatus(false);
             return null;
           });
       }
@@ -616,133 +611,101 @@
             "Content-Type": "application/json",
             password: password,
           },
-        })
-          .then((response) => {
-            const data = response.json();
-            if (response.status === 200) {
-              return data;
-            } else if (response.status === 401) {
-              alert("パスワードが違います");
-              return null;
-            } else {
-              alert("ログイン中にエラーが発生しました。");
-              return null;
-            }
-          })
-          .then((data) => {
-            if (data == null) {
+        }).then(async (response) => {
+          const data = await response.json();
+          if (response.status === 401) {
+            alert("パスワードが違います");
+            return;
+          }
+          if (!response.ok) {
+            alert("ログイン中にエラーが発生しました。");
+            return;
+          }
+          if (data["type"] !== "d") {
+            alert("このページはd専用です。" + data["type"] + "ではログインできません。");
+            return;
+          }
+          console.log(data);
+          isLogin = true;
+          auth_key = data["token"];
+          document.getElementById("login").style.display = "none";
+          document.getElementById("main").style.display = "block";
+          document.getElementById("pass").value = "";
+          const checkInterval = () => {
+            if (!isLogin) return null;
+            check().then(async (ret) => {
+              if (ret != null && ret.length > 0) {
+                ret.forEach((item) => {
+                  if (item["status"] === "呼び出し中" || item["status"] === "調理待ち") {
+                    if (!callingCodes.includes(item["order_id"])) {
+                      callingCodes.push(item["order_id"]);
+                    }
+                    if (waitingCodes.includes(item["order_id"])) {
+                      waitingCodes.splice(waitingCodes.indexOf(item["order_id"]), 1);
+                    }
+                  } else if (item["status"] === "呼び出し待ち") {
+                    if (!waitingCodes.includes(item["order_id"])) {
+                      waitingCodes.push(item["order_id"]);
+                    }
+                    if (callingCodes.includes(item["order_id"])) {
+                      callingCodes.splice(callingCodes.indexOf(item["order_id"]), 1);
+                    }
+                  } else {
+                    if (callingCodes.includes(item["order_id"])) {
+                      callingCodes.splice(callingCodes.indexOf(item["order_id"]), 1);
+                    }
+                    if (waitingCodes.includes(item["order_id"])) {
+                      waitingCodes.splice(waitingCodes.indexOf(item["order_id"]), 1);
+                    }
+                  }
+                });
+
+                refreshLists();
+              }
+              setTimeout(checkInterval, 1000);
+            });
+          };
+
+          fetch(apiurl + "log_all", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              authorization: auth_key,
+            },
+          }).then(async (response) => {
+            const ret = await response.json();
+            if (response.status === 429) {
+              const after = response.headers.get("Retry-After");
+              console.log("Rate limited. Retry after", after, "seconds");
+              isLogin = false;
+              document.getElementById("pass").value = password;
+              setOnlineStatus(false);
+              setTimeout(login, parseFloat(after) * 1000);
               return;
             }
-            console.log(data);
-            isLogin = true;
-            auth_key = data["token"];
-            document.getElementById("login").style.display = "none";
-            document.getElementById("main").style.display = "block";
-            // document.getElementById("pass").value = "";
-            // document.getElementById("status").innerHTML = data["user"];
-            // document.getElementById("log").innerHTML = "";
-            // document.getElementById("type_").innerHTML = data["type"];
-            const checkInterval = () => {
-              check().then(async (ret) => {
-                console.log("checked", ret);
-                if (ret != null && ret.length > 0) {
-                  //ここに更新時の挙動を書く
-                  //document.getElementById("log").innerHTML += "<br>" + JSON.stringify(await ret);
-                  ret.forEach((item) => {
-                    if (
-                      item["status"] === "呼び出し中" ||
-                      item["status"] === "調理待ち" ||
-                      item["status"] === "調理中" ||
-                      item["status"] === "調理済み"
-                    ) {
-                      if (!callingCodes.includes(item["order_id"])) {
-                        callingCodes.push(item["order_id"]);
-                      }
-                      if (waitingCodes.includes(item["order_id"])) {
-                        waitingCodes.splice(
-                          waitingCodes.indexOf(item["order_id"]),
-                          1
-                        );
-                      }
-                    } else if (item["status"] === "呼び出し待ち") {
-                      if (!waitingCodes.includes(item["order_id"])) {
-                        waitingCodes.push(item["order_id"]);
-                      }
-                      if (callingCodes.includes(item["order_id"])) {
-                        callingCodes.splice(
-                          callingCodes.indexOf(item["order_id"]),
-                          1
-                        );
-                      }
-                    } else {
-                      if (callingCodes.includes(item["order_id"])) {
-                        callingCodes.splice(
-                          callingCodes.indexOf(item["order_id"]),
-                          1
-                        );
-                      }
-                      if (waitingCodes.includes(item["order_id"])) {
-                        waitingCodes.splice(
-                          waitingCodes.indexOf(item["order_id"]),
-                          1
-                        );
-                      }
-                    }
-                  });
-
-                  refreshLists();
-                }
-                if (isLogin) {
-                  setTimeout(() => {
-                    checkInterval();
-                  }, 1000);
-                }
-              });
-            };
-            checkInterval();
-            console.log("checkInterval start");
-
-            fetch(apiurl + "log_all", {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                authorization: auth_key,
-              },
-            })
-              .then((response) => {
-                if (response.status === 200) {
-                  return response.json();
-                } else {
-                  console.error("Error:", response.text());
-                }
-              })
-              .then((ret) => {
-                // console.log("logall", ret);
-                if (ret == null) {
-                  return;
-                }
-                callingCodes = [];
-                waitingCodes = [];
-                for (const key in ret) {
-                  console.log(key, ret[key].status);
-                  if (
-                    ret[key].status === "呼び出し中" ||
-                    ret[key].status === "調理待ち" ||
-                    ret[key].status === "調理中" ||
-                    ret[key].status === "調理済み"
-                  ) {
-                    callingCodes.push(parseInt(key));
-                  } else if (ret[key].status === "呼び出し待ち") {
-                    waitingCodes.push(parseInt(key));
-                  }
-                }
-                autoUpdate();
-              });
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-            alert("ログイン中にエラーが発生しました。");
+            if (!response.ok) {
+              console.error("Error:", ret);
+              setOnlineStatus(false);
+              return;
+            }
+            callingCodes = [];
+            waitingCodes = [];
+            for (const key in ret) {
+              if (ret[key].status === "呼び出し中" || ret[key].status === "調理待ち") {
+                callingCodes.push(parseInt(key));
+              } else if (ret[key].status === "呼び出し待ち") {
+                waitingCodes.push(parseInt(key));
+              }
+            }
+            autoUpdate();
           });
+
+          checkInterval();
+          console.log("checkInterval start");
+        }).catch((error) => {
+          console.error("Error:", error);
+          alert("ログイン中にエラーが発生しました。");
+        });
       }
     </script>
   </body>
